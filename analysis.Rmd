@@ -1,0 +1,66 @@
+---
+title: "Bike Rides Analysis"
+author: "Pooja Rathee"
+date: '2022-04-08'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Load Libraries.
+```{r echo=FALSE}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(purrr)
+library(readr)
+library(scales)
+```
+
+Read all data files separately. 
+
+```{r}
+dt1 <- read_csv("202104-divvy-tripdata/202104-divvy-tripdata.csv")
+dt2 <- read_csv("202105-divvy-tripdata/202105-divvy-tripdata.csv")
+dt3 <- read_csv("202106-divvy-tripdata/202106-divvy-tripdata.csv")
+dt4 <- read_csv("202107-divvy-tripdata/202107-divvy-tripdata.csv")
+dt5 <- read_csv("202108-divvy-tripdata/202108-divvy-tripdata.csv")
+dt6 <- read_csv("202109-divvy-tripdata/202109-divvy-tripdata.csv")
+dt7 <- read_csv("202110-divvy-tripdata/202110-divvy-tripdata.csv")
+dt8 <- read_csv("202111-divvy-tripdata/202111-divvy-tripdata.csv")
+dt9 <- read_csv("202112-divvy-tripdata/202112-divvy-tripdata.csv")
+dt10 <- read_csv("202201-divvy-tripdata/202201-divvy-tripdata.csv")
+dt11 <- read_csv("202202-divvy-tripdata/202202-divvy-tripdata.csv")
+dt12 <- read_csv("202203-divvy-tripdata/202203-divvy-tripdata.csv")
+
+```
+
+Combine All files into `bike_rides` 
+
+```{r}
+bike_rides <- rbind(dt1, dt2, dt3, dt4, dt5, dt6, dt7, dt8, dt9, dt10, dt11, dt12)
+dim(bike_rides)
+bike_rides <- janitor::remove_empty(bike_rides, which = c("rows", "cols"))
+dim(bike_rides)
+```
+
+Below lines parse the hours and dates. 
+
+```{r}
+bike_rides$start_hour <- lubridate::hour(bike_rides$started_at)
+bike_rides$end_hour <- lubridate::hour(bike_rides$ended_at)
+
+bike_rides$start_date <- as.Date(bike_rides$started_at)
+bike_rides$end_date <- as.Date(bike_rides$ended_at)
+
+```
+
+#Plot
+The plot provides an overview that count of Bike Rides increases between 5 AM to 3 PM in previous 12 months.
+
+```{r}
+bike_rides %>% count(start_hour, sort = T) %>% ggplot() + 
+  geom_line(aes(x=start_hour,y=n)) + scale_y_continuous(labels = comma) + labs(title = "Count of Bike Rides by hour", x = "Start hour of Rides", y="Count of Rides")
+```
+
+
