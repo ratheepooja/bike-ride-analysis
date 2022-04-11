@@ -146,3 +146,5 @@ labs(title = "Relationship between average_duration and weekday")
 
 ```
 # Average duration of rides generally increases on Sunday and Saturday as compare to weekdays.
+
+# End
