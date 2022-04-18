@@ -13,6 +13,9 @@ output:
 library(tidyverse)
 library(lubridate)
 library(ggplot2)
+library(purrr)
+library(readr)
+library(scales)
 ```
 
 Read all data files separately.
@@ -37,7 +40,6 @@ dt12 <- read_csv("data/202203-divvy-tripdata.csv")
 
 ```{r}
 all_trips <- rbind(dt1, dt2, dt3, dt4, dt5, dt6, dt7, dt8, dt9, dt10, dt11, dt12)
-View(all_trips)
 ```
 
 # Convert ride_id and rideable_type to character so that they can stack correctly
@@ -45,7 +47,6 @@ View(all_trips)
 ```{r}
 all_trips <-  mutate(all_trips, ride_id = as.character(ride_id)
                    ,rideable_type = as.character(rideable_type)) 
-colnames(all_trips)
 ```
 
 # Inspect the new table that has been created
@@ -65,7 +66,7 @@ summary(all_trips)  #Statistical summary of data. Mainly for numerics
 table(all_trips$member_casual)
 ```
 
-# Formatting the data
+# Formatting the date and time
 
 ```{r}
 all_trips$date <- as.Date(all_trips$started_at) #The default format is yyyy-mm-dd
@@ -73,6 +74,8 @@ all_trips$month <- format(as.Date(all_trips$date), "%m")
 all_trips$day <- format(as.Date(all_trips$date), "%d")
 all_trips$year <- format(as.Date(all_trips$date), "%Y")
 all_trips$day_of_week <- format(as.Date(all_trips$date), "%A")
+all_trips$start_hour <- lubridate::hour(all_trips$started_at)
+all_trips$end_hour <- lubridate::hour(all_trips$ended_at)
 ```
 
 # Add a "ride_length" calculation to all_trips (in seconds)
@@ -166,3 +169,62 @@ labs(title = "Relationship between average_duration and weekday")
 ```
 
 # Average duration of rides generally increases on Sunday and Saturday as compare to weekdays.
+```{r}
+all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) + scale_y_continuous(labels =comma) +
+  geom_col(position = "dodge") +
+labs(title = "Relationship between number_of_rides and weekday")
+
+
+```
+# The number of rides are maximum on weekends for casual riders as compare to annual members.
+
+```{r}
+all_trips_v2 %>% 
+  mutate(months = month(date, label = FALSE)) %>% 
+  group_by(member_casual, months) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, months)  %>% 
+  ggplot(aes(x = months, y = number_of_rides, fill = member_casual, color=member_casual)) +
+  scale_y_continuous(labels = comma) + 
+  geom_line() +
+labs(title = "Numbers of Rides Trend")
+
+
+```
+# Number of rides of casuals increases between 6 to 8 months of the year.
+```{r}
+all_trips_v2 %>% 
+  mutate(start_hour = hour(all_trips_v2$started_at)) %>% 
+  group_by(member_casual,start_hour) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, start_hour)  %>% 
+  ggplot(aes(x=start_hour,y=number_of_rides, fill = member_casual, color = member_casual)) + 
+  geom_line() +
+  scale_y_continuous(labels = comma) + 
+  labs(title = "Count of Bike Rides by hour at Start time of Day", x = "Start hour of Rides", y="Count of Rides",subtitle = "Started At", fill="start_station_name")
+
+```
+
+```{r}
+all_trips_v2 %>% 
+  mutate(end_hour = hour(all_trips_v2$ended_at)) %>% 
+  group_by(member_casual,end_hour) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, end_hour)  %>% 
+  ggplot(aes(x=end_hour,y=number_of_rides, fill = member_casual, color = member_casual)) + 
+  geom_line() +
+  scale_y_continuous(labels =comma) + 
+  labs(title = "Count of Bike Rides by hour at End time of Day", x = "End hour of Rides", y="Count of Rides",subtitle = "Ended At", fill="end_station_name")
+```
+
+# Marketing memberships to casual_riders could begin on weekends from 4 PM to 6 PM.
+Memberships to casual riders could be promoted with weekend-only memberships as number of rides surge on weekends. 
